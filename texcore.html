@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TexCore – Sistema de Gestión Textil</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0c0d10;--surface:#131518;--surface2:#1a1d22;
+  --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.12);
+  --text:#e8eaed;--muted:#6b7280;
+  --accent:#00e5a0;--accent2:#0ea5e9;
+  --warn:#f59e0b;--danger:#ef4444;--purple:#a78bfa;
+  --mono:'Space Mono',monospace;--sans:'DM Sans',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:0;}
+
+/* ══════════════════════════════
+   LOGIN
+══════════════════════════════ */
+#login-screen{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:var(--bg);}
+.login-card{width:420px;background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:40px;position:relative;overflow:hidden;}
+.login-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);}
+.login-logo{display:flex;align-items:center;gap:10px;margin-bottom:32px;justify-content:center;}
+.login-logo-mark{width:38px;height:38px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;}
+.login-logo-mark svg{width:20px;height:20px;fill:#0c0d10;}
+.login-logo-name{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--accent);letter-spacing:-1px;}
+.login-title{font-size:18px;font-weight:600;text-align:center;margin-bottom:4px;}
+.login-sub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:28px;}
+.login-role-tabs{display:flex;gap:6px;margin-bottom:24px;background:var(--surface2);border-radius:10px;padding:4px;}
+.role-tab{flex:1;padding:8px;text-align:center;border-radius:7px;cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);transition:all .2s;}
+.role-tab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.3);}
+.login-field{margin-bottom:14px;}
+.login-label{font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;display:block;font-family:var(--mono);}
+.login-input{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:11px 14px;font-size:14px;color:var(--text);font-family:var(--sans);outline:none;transition:border-color .2s;}
+.login-input:focus{border-color:var(--accent);}
+.login-hint{font-size:11px;color:var(--muted);margin-top:5px;font-family:var(--mono);}
+.login-btn{width:100%;background:var(--accent);color:#0c0d10;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--sans);margin-top:8px;transition:all .2s;letter-spacing:.3px;}
+.login-btn:hover{background:#00ffb0;box-shadow:0 0 20px rgba(0,229,160,.3);}
+.login-error{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--danger);margin-top:12px;display:none;font-family:var(--mono);}
+.login-demo{margin-top:20px;padding-top:18px;border-top:1px solid var(--border);text-align:center;}
+.login-demo p{font-size:12px;color:var(--muted);margin-bottom:8px;font-family:var(--mono);}
+.demo-chips{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;}
+.demo-chip{padding:4px 12px;border:1px solid var(--border2);border-radius:20px;font-size:11px;color:var(--muted);cursor:pointer;font-family:var(--mono);transition:all .15s;}
+.demo-chip:hover{border-color:var(--accent);color:var(--accent);}
+
+/* ══════════════════════════════
+   APP LAYOUT
+══════════════════════════════ */
+#app{display:none;}
+.wrapper{display:grid;grid-template-columns:240px 1fr;grid-template-rows:64px 1fr;min-height:100vh;position:relative;z-index:1;}
+
+/* TOPBAR */
+.topbar{grid-column:1/-1;display:flex;align-items:center;padding:0 28px;background:var(--surface);border-bottom:1px solid var(--border);gap:20px;}
+.logo{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--accent);letter-spacing:-1px;display:flex;align-items:center;gap:8px;}
+.logo-mark{width:28px;height:28px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;}
+.logo-mark svg{width:16px;height:16px;fill:#0c0d10;}
+.topbar-sep{width:1px;height:32px;background:var(--border2);margin:0 8px;}
+.breadcrumb{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px;}
+.breadcrumb span{color:var(--text);}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:16px;}
+.badge-notif{position:relative;cursor:pointer;}
+.badge-notif svg{width:20px;height:20px;stroke:var(--muted);}
+.badge-notif::after{content:'3';position:absolute;top:-4px;right:-4px;background:var(--danger);color:#fff;font-size:9px;font-weight:700;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);}
+.avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#00e5a0,#0ea5e9);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#0c0d10;cursor:pointer;}
+.topbar-time{font-family:var(--mono);font-size:12px;color:var(--muted);}
+.logout-btn{display:flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--border2);border-radius:8px;font-size:12px;color:var(--muted);cursor:pointer;background:transparent;font-family:var(--sans);transition:all .15s;}
+.logout-btn:hover{border-color:var(--danger);color:var(--danger);}
+
+/* SIDEBAR */
+.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:20px 0;display:flex;flex-direction:column;gap:4px;overflow-y:auto;}
+.nav-section{padding:8px 20px 4px;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--muted);}
+.nav-item{display:flex;align-items:center;gap:12px;padding:10px 20px;cursor:pointer;transition:all .18s;color:var(--muted);font-size:13px;font-weight:500;position:relative;margin:1px 0;}
+.nav-item svg{width:17px;height:17px;stroke:currentColor;flex-shrink:0;}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,.04);}
+.nav-item.active{color:var(--accent);background:rgba(0,229,160,.07);}
+.nav-item.active::before{content:'';position:absolute;left:0;top:6px;bottom:6px;width:3px;background:var(--accent);border-radius:0 3px 3px 0;}
+.nav-pill{margin-left:auto;background:var(--surface2);border:1px solid var(--border2);border-radius:20px;padding:2px 8px;font-size:10px;font-family:var(--mono);color:var(--muted);}
+.nav-item.active .nav-pill{background:rgba(0,229,160,.15);border-color:rgba(0,229,160,.3);color:var(--accent);}
+.nav-pill-red{background:rgba(239,68,68,.15)!important;border-color:rgba(239,68,68,.3)!important;color:var(--danger)!important;}
+.sidebar-bottom{margin-top:auto;padding:16px 20px;border-top:1px solid var(--border);}
+.user-card{display:flex;align-items:center;gap:10px;}
+.user-info .name{font-size:13px;font-weight:600;}
+.user-info .role{font-size:11px;color:var(--muted);}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent);margin-left:auto;flex-shrink:0;}
+
+/* MAIN & PAGES */
+.main{overflow-y:auto;background:var(--bg);}
+.page{display:none;padding:28px;flex-direction:column;gap:24px;min-height:calc(100vh - 64px);}
+.page.active{display:flex;}
+
+/* PAGE HEADER */
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;}
+.page-title{font-size:22px;font-weight:700;letter-spacing:-.5px;}
+.page-sub{font-size:13px;color:var(--muted);margin-top:3px;}
+.header-actions{display:flex;gap:10px;}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:var(--sans);transition:all .18s;}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border2);}
+.btn-ghost:hover{background:var(--surface2);color:var(--text);}
+.btn-primary{background:var(--accent);color:#0c0d10;}
+.btn-primary:hover{background:#00ffb0;box-shadow:0 0 20px rgba(0,229,160,.3);}
+.btn svg{width:15px;height:15px;stroke:currentColor;}
+
+/* KPI CARDS */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;position:relative;overflow:hidden;transition:border-color .2s;}
+.kpi-card:hover{border-color:var(--border2);}
+.kpi-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.kpi-card.green::after{background:linear-gradient(90deg,transparent,var(--accent),transparent);}
+.kpi-card.blue::after{background:linear-gradient(90deg,transparent,var(--accent2),transparent);}
+.kpi-card.warn::after{background:linear-gradient(90deg,transparent,var(--warn),transparent);}
+.kpi-card.purple::after{background:linear-gradient(90deg,transparent,var(--purple),transparent);}
+.kpi-label{font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;}
+.kpi-value{font-family:var(--mono);font-size:32px;font-weight:700;line-height:1;letter-spacing:-1px;}
+.kpi-card.green .kpi-value{color:var(--accent);}
+.kpi-card.blue .kpi-value{color:var(--accent2);}
+.kpi-card.warn .kpi-value{color:var(--warn);}
+.kpi-card.purple .kpi-value{color:var(--purple);}
+.kpi-sub{margin-top:8px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;}
+.kpi-trend{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;}
+.kpi-trend.up{background:rgba(0,229,160,.12);color:var(--accent);}
+.kpi-trend.down{background:rgba(239,68,68,.12);color:var(--danger);}
+.kpi-icon{position:absolute;top:18px;right:18px;width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;}
+.kpi-icon svg{width:18px;height:18px;stroke:currentColor;}
+.kpi-card.green .kpi-icon{background:rgba(0,229,160,.1);color:var(--accent);}
+.kpi-card.blue .kpi-icon{background:rgba(14,165,233,.1);color:var(--accent2);}
+.kpi-card.warn .kpi-icon{background:rgba(245,158,11,.1);color:var(--warn);}
+.kpi-card.purple .kpi-icon{background:rgba(167,139,250,.1);color:var(--purple);}
+
+/* CARD BASE */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+.card-header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--border);}
+.card-title{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;}
+.card-title svg{width:16px;height:16px;stroke:var(--accent);}
+.card-actions{display:flex;gap:8px;}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border2);color:var(--muted);transition:all .15s;}
+.chip:hover,.chip.active{border-color:var(--accent);color:var(--accent);background:rgba(0,229,160,.07);}
+table{width:100%;border-collapse:collapse;}
+thead tr{border-bottom:1px solid var(--border);}
+th{padding:12px 22px;text-align:left;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+tbody tr{border-bottom:1px solid var(--border);transition:background .15s;cursor:pointer;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:rgba(255,255,255,.025);}
+td{padding:14px 22px;font-size:13px;}
+.order-id{font-family:var(--mono);font-size:12px;color:var(--accent);}
+.client-name{font-weight:600;}
+.client-type{font-size:11px;color:var(--muted);}
+.status-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+.status-badge::before{content:'';width:6px;height:6px;border-radius:50%;}
+.s-diseno{background:rgba(167,139,250,.1);color:var(--purple);}.s-diseno::before{background:var(--purple);}
+.s-corte{background:rgba(14,165,233,.1);color:var(--accent2);}.s-corte::before{background:var(--accent2);}
+.s-confeccion{background:rgba(245,158,11,.1);color:var(--warn);}.s-confeccion::before{background:var(--warn);}
+.s-terminado{background:rgba(0,229,160,.1);color:var(--accent);}.s-terminado::before{background:var(--accent);}
+.s-pendiente{background:rgba(107,114,128,.1);color:var(--muted);}.s-pendiente::before{background:var(--muted);}
+.s-pagado{background:rgba(0,229,160,.1);color:var(--accent);}.s-pagado::before{background:var(--accent);}
+.s-credito{background:rgba(14,165,233,.1);color:var(--accent2);}.s-credito::before{background:var(--accent2);}
+.progress-mini{width:80px;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+.progress-fill{height:100%;border-radius:3px;transition:width .4s;}
+.amount{font-family:var(--mono);font-size:12px;font-weight:700;}
+.mid-row{display:grid;grid-template-columns:1fr 380px;gap:16px;}
+.bottom-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+
+/* INVENTORY */
+.inv-list{padding:4px 0;}
+.inv-item{padding:14px 22px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:8px;}
+.inv-item:last-child{border-bottom:none;}
+.inv-top{display:flex;align-items:center;justify-content:space-between;}
+.inv-name{font-weight:600;font-size:13px;}
+.inv-qty{font-family:var(--mono);font-size:12px;}
+.inv-bar-wrap{height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;}
+.inv-bar{height:100%;border-radius:2px;transition:width .5s;}
+.inv-meta{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);}
+
+/* CHART */
+.chart-area{padding:22px;display:flex;flex-direction:column;gap:20px;}
+.bar-chart{display:flex;align-items:flex-end;gap:8px;height:140px;}
+.bar-col{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;}
+.bar-wrap{width:100%;display:flex;align-items:flex-end;justify-content:center;gap:3px;height:120px;}
+.bar{width:100%;border-radius:5px 5px 0 0;transition:height .5s ease;cursor:pointer;position:relative;}
+.bar:hover::after{content:attr(data-val);position:absolute;top:-22px;left:50%;transform:translateX(-50%);font-size:10px;font-family:var(--mono);color:var(--text);white-space:nowrap;}
+.bar-a{background:linear-gradient(180deg,var(--accent),rgba(0,229,160,.4));}
+.bar-b{background:linear-gradient(180deg,var(--accent2),rgba(14,165,233,.3));}
+.bar-label{font-size:10px;color:var(--muted);font-family:var(--mono);}
+.chart-legend{display:flex;gap:16px;}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);}
+.legend-dot{width:8px;height:8px;border-radius:2px;}
+
+/* ACTIVITY */
+.activity-list{padding:4px 0;max-height:320px;overflow-y:auto;}
+.activity-list::-webkit-scrollbar{width:4px;}
+.activity-list::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+.act-item{padding:12px 22px;display:flex;gap:12px;border-bottom:1px solid var(--border);transition:background .15s;}
+.act-item:last-child{border-bottom:none;}
+.act-item:hover{background:rgba(255,255,255,.02);}
+.act-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;}
+.act-body{flex:1;}
+.act-text{font-size:13px;line-height:1.45;}
+.act-text strong{color:var(--text);}
+.act-time{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:3px;}
+
+/* ANIMATIONS */
+@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.kpi-card{animation:slideUp .4s ease both;}
+.kpi-card:nth-child(1){animation-delay:.05s}.kpi-card:nth-child(2){animation-delay:.1s}
+.kpi-card:nth-child(3){animation-delay:.15s}.kpi-card:nth-child(4){animation-delay:.2s}
+.mid-row,.bottom-row{animation:slideUp .4s ease .25s both;}
+.glow-green{box-shadow:0 0 30px rgba(0,229,160,.06);}
+.glow-blue{box-shadow:0 0 30px rgba(14,165,233,.06);}
+.main::-webkit-scrollbar{width:5px;}
+.main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+.tag-new{display:inline-block;padding:2px 7px;background:rgba(239,68,68,.15);color:var(--danger);border-radius:4px;font-size:10px;font-weight:700;letter-spacing:1px;margin-left:6px;vertical-align:middle;}
+
+/* ══ COTIZACIONES ══ */
+.tab-row{display:flex;gap:6px;padding:16px 22px;border-bottom:1px solid var(--border);}
+.tab-btn{padding:6px 16px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border2);color:var(--muted);background:transparent;font-family:var(--sans);transition:all .15s;}
+.tab-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(0,229,160,.07);}
+.action-btn{padding:5px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;font-family:var(--sans);}
+.ab-send{background:rgba(0,229,160,.15);color:var(--accent);}
+.ab-approve{background:var(--accent);color:#0c0d10;}
+.ab-pdf{background:var(--surface2);color:var(--muted);border:1px solid var(--border2);}
+
+/* ══ INVENTARIO PAGE ══ */
+.inv-grid-full{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:22px;}
+.inv-card-full{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:18px;transition:border-color .2s;}
+.inv-card-full:hover{border-color:var(--border2);}
+.inv-card-full.critical{border-color:rgba(239,68,68,.4);}
+.inv-card-full.low{border-color:rgba(245,158,11,.4);}
+.icf-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;}
+.icf-name{font-size:14px;font-weight:600;}
+.icf-cat{font-size:11px;color:var(--muted);margin-top:2px;font-family:var(--mono);}
+.icf-val{font-family:var(--mono);font-size:26px;font-weight:700;margin-bottom:4px;}
+.icf-min{font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:10px;}
+.icf-bar-wrap{height:6px;background:var(--bg);border-radius:3px;overflow:hidden;margin-bottom:6px;}
+.icf-bar{height:100%;border-radius:3px;}
+.icf-footer{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);font-family:var(--mono);}
+
+/* ══ KANBAN ══ */
+.kanban-board{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;padding:22px;align-items:start;}
+.kan-col{background:var(--surface2);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+.kan-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.kan-title{font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;}
+.kan-count{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:var(--mono);}
+.kan-cards{padding:10px;display:flex;flex-direction:column;gap:8px;min-height:80px;}
+.kan-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:all .15s;}
+.kan-card:hover{border-color:var(--border2);transform:translateY(-1px);}
+.kan-card-id{font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:6px;}
+.kan-card-name{font-size:13px;font-weight:600;margin-bottom:2px;}
+.kan-card-detail{font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:10px;}
+.kan-card-bar{height:3px;background:var(--surface2);border-radius:2px;overflow:hidden;margin-bottom:8px;}
+.kan-card-bar-fill{height:100%;border-radius:2px;}
+.kan-card-foot{display:flex;align-items:center;justify-content:space-between;}
+.kan-card-date{font-size:10px;color:var(--muted);font-family:var(--mono);}
+.kan-card-val{font-size:11px;font-family:var(--mono);font-weight:700;color:var(--accent);}
+.kan-drop{border:2px dashed var(--border2);border-radius:10px;padding:16px;text-align:center;font-size:12px;color:var(--muted);font-family:var(--mono);}
+
+/* ══ MODAL ══ */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal-box{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:28px;width:440px;max-height:85vh;overflow-y:auto;position:relative;}
+.modal-box::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);border-radius:16px 16px 0 0;}
+.modal-title{font-size:17px;font-weight:700;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between;}
+.modal-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;}
+.modal-close:hover{color:var(--text);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.form-group{margin-bottom:14px;}
+.form-label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;display:block;font-family:var(--mono);}
+.form-input,.form-select{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:9px;padding:10px 13px;font-size:13px;color:var(--text);font-family:var(--sans);outline:none;transition:border-color .2s;}
+.form-input:focus,.form-select:focus{border-color:var(--accent);}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:8px;}
+
+/* ══ VISTA CLIENTE ══ */
+.vc-wrap{background:#f0f4f8;border-radius:0;min-height:calc(100vh - 64px);display:flex;flex-direction:column;}
+.vc-nav{background:#fff;border-bottom:1px solid #e2e8f0;padding:16px 28px;display:flex;align-items:center;justify-content:space-between;}
+.vc-brand{display:flex;align-items:center;gap:10px;}
+.vc-brand-ico{width:32px;height:32px;background:#00e5a0;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:14px;color:#0c0d10;}
+.vc-brand-name{font-family:var(--mono);font-size:16px;font-weight:700;color:#111;}
+.vc-brand-sub{font-size:11px;color:#94a3b8;margin-top:1px;}
+.vc-body{flex:1;padding:36px 28px;overflow-y:auto;}
+.vc-hero{text-align:center;padding:20px 0 32px;}
+.vc-hero-icon{font-size:44px;margin-bottom:14px;}
+.vc-hero-title{font-family:var(--mono);font-size:22px;font-weight:700;color:#111;margin-bottom:6px;}
+.vc-hero-sub{font-size:14px;color:#64748b;margin-bottom:28px;}
+.vc-search-row{display:flex;gap:8px;max-width:420px;margin:0 auto 12px;}
+.vc-inp{flex:1;border:2px solid #e2e8f0;border-radius:10px;padding:12px 16px;font-size:14px;color:#111;background:#fff;outline:none;font-family:var(--mono);}
+.vc-inp:focus{border-color:#00e5a0;}
+.vc-search-btn{background:#00e5a0;color:#0c0d10;border:none;border-radius:10px;padding:12px 22px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--mono);}
+.vc-search-btn:hover{background:#00ffb0;}
+.vc-error{color:#ef4444;font-size:12px;margin-top:8px;font-family:var(--mono);display:none;}
+.vc-demo{font-size:12px;color:#94a3b8;font-family:var(--mono);}
+.vc-demo span{color:#00a86b;cursor:pointer;text-decoration:underline;}
+.vc-result{display:none;}
+.vc-result.show{display:block;}
+.vc-back{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#64748b;cursor:pointer;margin-bottom:20px;font-family:var(--mono);}
+.vc-back:hover{color:#111;}
+.vc-rcard{background:#fff;border-radius:14px;padding:24px;margin-bottom:16px;box-shadow:0 1px 8px rgba(0,0,0,.08);}
+.vc-rcard-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px;}
+.vc-oid{font-size:11px;color:#94a3b8;font-family:var(--mono);margin-bottom:4px;}
+.vc-oname{font-size:20px;font-weight:700;color:#111;margin-bottom:3px;font-family:var(--mono);}
+.vc-osub{font-size:12px;color:#64748b;font-family:var(--mono);}
+.vc-spill{border-radius:20px;padding:6px 16px;font-size:12px;font-weight:700;font-family:var(--mono);}
+/* Phase tracker */
+.vc-phases{display:flex;align-items:flex-start;margin-bottom:22px;}
+.vc-ph{flex:1;display:flex;flex-direction:column;align-items:center;position:relative;}
+.vc-ph-line{position:absolute;top:15px;left:50%;right:-50%;height:3px;z-index:0;}
+.vc-ph:last-child .vc-ph-line{display:none;}
+.vc-ph-circle{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;z-index:1;position:relative;border:2px solid transparent;font-family:var(--mono);}
+.vpc-done{background:#00e5a0;color:#0c0d10;border-color:#00e5a0;}
+.vpc-active{background:#fff;color:#00a86b;border-color:#00e5a0;box-shadow:0 0 0 4px rgba(0,229,160,.2);}
+.vpc-pend{background:#f1f5f9;color:#94a3b8;border-color:#e2e8f0;}
+.vc-ph-lbl{font-size:10px;font-weight:700;margin-top:6px;text-align:center;font-family:var(--mono);}
+.vpl-done{color:#059652;}.vpl-active{color:#00a86b;}.vpl-pend{color:#94a3b8;}
+.vc-info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.vc-ibox{background:#f8fafc;border:1px solid #e9eef5;border-radius:10px;padding:14px;}
+.vc-ibox-lbl{font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;font-family:var(--mono);margin-bottom:5px;}
+.vc-ibox-val{font-size:16px;font-weight:700;color:#111;font-family:var(--mono);}
+.vc-ibox-val.g{color:#059652;}.vc-ibox-val.a{color:#b45309;}
+.vc-prod-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f1f5f9;}
+.vc-prod-item:last-child{border-bottom:none;}
+.vc-prod-name{font-size:13px;color:#111;font-weight:600;}
+.vc-prod-qty{font-size:12px;color:#64748b;font-family:var(--mono);background:#f1f5f9;padding:3px 9px;border-radius:6px;}
+.vc-tl-item{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid #f1f5f9;}
+.vc-tl-item:last-child{border-bottom:none;}
+.vc-tl-ico{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
+.tli-g{background:#dcfce7;color:#059652;}.tli-b{background:#dbeafe;color:#2563eb;}
+.tli-a{background:#fef3c7;color:#b45309;}.tli-gr{background:#f1f5f9;color:#64748b;}
+.vc-tl-title{font-size:13px;font-weight:600;color:#111;margin-bottom:2px;}
+.vc-tl-time{font-size:11px;color:#94a3b8;font-family:var(--mono);}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ LOGIN ══════════════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-mark">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      </div>
+      <span class="login-logo-name">TexCore</span>
+    </div>
+    <div class="login-title">Bienvenido de nuevo</div>
+    <div class="login-sub">Sistema de Gestión y Seguimiento Textil</div>
+
+    <div class="login-role-tabs">
+      <div class="role-tab active" onclick="setRole('admin',this)" id="tab-admin">
+        🏭 Administrador
+      </div>
+      <div class="role-tab" onclick="setRole('cliente',this)" id="tab-cliente">
+        📦 Cliente
+      </div>
+    </div>
+
+    <div class="login-field">
+      <label class="login-label">Usuario</label>
+      <input class="login-input" id="login-user" placeholder="Ingresa tu usuario" />
+    </div>
+    <div class="login-field">
+      <label class="login-label">Contraseña</label>
+      <input class="login-input" type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" />
+    </div>
+    <button class="login-btn" onclick="doLogin()">Ingresar al sistema</button>
+    <div class="login-error" id="login-error">Usuario o contraseña incorrectos. Intenta con las credenciales de demo.</div>
+
+    <div class="login-demo">
+      <p>— Accesos de demostración —</p>
+      <div class="demo-chips">
+        <div class="demo-chip" onclick="fillDemo('admin','1234','admin')">👤 admin / 1234</div>
+        <div class="demo-chip" onclick="fillDemo('cliente','tc0241','cliente')">📦 cliente / tc0241</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ APP ══════════════ -->
+<div id="app">
+<div class="wrapper">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      </div>
+      TexCore
+    </div>
+    <div class="topbar-sep"></div>
+    <div class="breadcrumb" id="breadcrumb">Sistema de Gestión Textil &nbsp;/&nbsp; <span>Dashboard</span></div>
+    <div class="topbar-right">
+      <div class="topbar-time" id="clock">--:--:--</div>
+      <div class="badge-notif" id="notif-bell" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      </div>
+      <div class="avatar" id="top-avatar">MG</div>
+      <button class="logout-btn" onclick="doLogout()">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" width="14" height="14"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Salir
+      </button>
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <!-- Admin nav -->
+    <div id="admin-nav">
+      <div class="nav-section">Principal</div>
+      <div class="nav-item active" onclick="goPage('dashboard',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </div>
+      <div class="nav-item" onclick="goPage('cotizaciones',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Cotizaciones
+        <span class="nav-pill">5</span>
+      </div>
+      <div class="nav-item" onclick="goPage('inventario',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+        Inventario
+        <span class="nav-pill nav-pill-red">3!</span>
+      </div>
+      <div class="nav-item" onclick="goPage('seguimiento',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Seguimiento
+        <span class="nav-pill">6</span>
+      </div>
+      <div class="nav-section" style="margin-top:8px">Acceso</div>
+      <div class="nav-item" onclick="goPage('cliente',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        Vista Cliente
+      </div>
+    </div>
+    <!-- Cliente nav -->
+    <div id="cliente-nav" style="display:none">
+      <div class="nav-section">Mi Pedido</div>
+      <div class="nav-item active" onclick="goPage('cliente',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        Seguimiento
+      </div>
+    </div>
+
+    <div class="sidebar-bottom">
+      <div class="user-card">
+        <div class="avatar" style="width:36px;height:36px;font-size:12px;" id="sb-avatar">MG</div>
+        <div class="user-info">
+          <div class="name" id="sb-name">M. Galvis</div>
+          <div class="role" id="sb-role">Administrador</div>
+        </div>
+        <div class="status-dot"></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- ── DASHBOARD ── -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Dashboard de Producción</div>
+          <div class="page-sub">Semana 11 · Marzo 2026 · Cúcuta, Colombia</div>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-ghost">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Exportar
+          </button>
+          <button class="btn btn-primary" onclick="openModal('modal-cot')">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Nueva Cotización
+          </button>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card green glow-green">
+          <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div>
+          <div class="kpi-label">Pedidos Activos</div>
+          <div class="kpi-value">24</div>
+          <div class="kpi-sub"><span class="kpi-trend up">↑ 12%</span> vs semana anterior</div>
+        </div>
+        <div class="kpi-card blue glow-blue">
+          <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+          <div class="kpi-label">Producción Hoy</div>
+          <div class="kpi-value">187</div>
+          <div class="kpi-sub"><span class="kpi-trend up">↑ 8%</span> unidades producidas</div>
+        </div>
+        <div class="kpi-card warn">
+          <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+          <div class="kpi-label">Stock Crítico</div>
+          <div class="kpi-value">3</div>
+          <div class="kpi-sub"><span class="kpi-trend down">⚠ requiere acción</span></div>
+        </div>
+        <div class="kpi-card purple">
+          <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+          <div class="kpi-label">Ingresos Mes</div>
+          <div class="kpi-value">$48M</div>
+          <div class="kpi-sub"><span class="kpi-trend up">↑ 23%</span> vs mes anterior</div>
+        </div>
+      </div>
+
+      <div class="mid-row">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              Pedidos en Producción
+            </div>
+            <div class="card-actions">
+              <div class="chip active">Todos</div>
+              <div class="chip">Activos</div>
+              <div class="chip">Urgentes</div>
+            </div>
+          </div>
+          <table>
+            <thead><tr><th>ID</th><th>Cliente</th><th>Estado</th><th>Progreso</th><th>Entrega</th><th>Valor</th></tr></thead>
+            <tbody>
+              <tr><td><span class="order-id">#TC-0241</span></td><td><div class="client-name">Confecciones López</div><div class="client-type">Empresa · Cúcuta</div></td><td><span class="status-badge s-confeccion">Confección</span></td><td><div class="progress-mini"><div class="progress-fill bar-a" style="width:68%"></div></div></td><td style="font-size:12px;color:var(--warn)">18 Mar</td><td><span class="amount" style="color:var(--accent)">$2.4M</span></td></tr>
+              <tr><td><span class="order-id">#TC-0238</span></td><td><div class="client-name">Distribuidora Norte</div><div class="client-type">Mayorista · Pamplona</div></td><td><span class="status-badge s-corte">Corte</span></td><td><div class="progress-mini"><div class="progress-fill" style="width:42%;background:var(--accent2)"></div></div></td><td style="font-size:12px;color:var(--muted)">22 Mar</td><td><span class="amount" style="color:var(--accent)">$5.1M</span></td></tr>
+              <tr><td><span class="order-id">#TC-0235</span></td><td><div class="client-name">Boutique Milena</div><div class="client-type">Minorista · Cúcuta</div></td><td><span class="status-badge s-terminado">Terminado</span></td><td><div class="progress-mini"><div class="progress-fill bar-a" style="width:100%"></div></div></td><td style="font-size:12px;color:var(--accent)">✓ Listo</td><td><span class="amount" style="color:var(--accent)">$980K</span></td></tr>
+              <tr><td><span class="order-id">#TC-0233</span></td><td><div class="client-name">Sport & Style S.A.</div><div class="client-type">Empresa · Bogotá</div></td><td><span class="status-badge s-diseno">Diseño</span></td><td><div class="progress-mini"><div class="progress-fill" style="width:18%;background:var(--purple)"></div></div></td><td style="font-size:12px;color:var(--muted)">30 Mar</td><td><span class="amount" style="color:var(--accent)">$8.3M</span></td></tr>
+              <tr><td><span class="order-id">#TC-0230</span></td><td><div class="client-name">Almacenes Tía Rosa</div><div class="client-type">Minorista · Ocaña</div></td><td><span class="status-badge s-pendiente">Pendiente</span></td><td><div class="progress-mini"><div class="progress-fill" style="width:5%;background:var(--muted)"></div></div></td><td style="font-size:12px;color:var(--muted)">04 Abr</td><td><span class="amount" style="color:var(--accent)">$1.7M</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+              Stock de Materiales
+            </div>
+            <div class="chip" onclick="goPage('inventario',null)">Ver todo</div>
+          </div>
+          <div class="inv-list">
+            <div class="inv-item"><div class="inv-top"><span class="inv-name">Tela Algodón 100%</span><span class="inv-qty" style="color:var(--accent)">840 m</span></div><div class="inv-bar-wrap"><div class="inv-bar" style="width:84%;background:var(--accent)"></div></div><div class="inv-meta"><span>Mínimo: 200 m</span><span>84%</span></div></div>
+            <div class="inv-item"><div class="inv-top"><span class="inv-name">Denim 12 oz</span><span class="inv-qty" style="color:var(--accent2)">320 m</span></div><div class="inv-bar-wrap"><div class="inv-bar" style="width:53%;background:var(--accent2)"></div></div><div class="inv-meta"><span>Mínimo: 150 m</span><span>53%</span></div></div>
+            <div class="inv-item"><div class="inv-top"><span class="inv-name">Hilo Poliéster</span><span class="inv-qty" style="color:var(--warn)">42 kg</span></div><div class="inv-bar-wrap"><div class="inv-bar" style="width:28%;background:var(--warn)"></div></div><div class="inv-meta"><span>Mínimo: 40 kg ⚠️</span><span>28%</span></div></div>
+            <div class="inv-item"><div class="inv-top"><span class="inv-name">Tela Licra</span><span class="inv-qty" style="color:var(--danger)">18 m</span></div><div class="inv-bar-wrap"><div class="inv-bar" style="width:9%;background:var(--danger)"></div></div><div class="inv-meta"><span>Mínimo: 80 m 🔴</span><span>9%</span></div></div>
+            <div class="inv-item"><div class="inv-top"><span class="inv-name">Cremalleras</span><span class="inv-qty" style="color:var(--accent)">1,250</span></div><div class="inv-bar-wrap"><div class="inv-bar" style="width:72%;background:var(--accent)"></div></div><div class="inv-meta"><span>Mínimo: 300</span><span>72%</span></div></div>
+            <div class="inv-item"><div class="inv-top"><span class="inv-name">Botones Plástico</span><span class="inv-qty" style="color:var(--danger)">120</span></div><div class="inv-bar-wrap"><div class="inv-bar" style="width:12%;background:var(--danger)"></div></div><div class="inv-meta"><span>Mínimo: 500 🔴</span><span>12%</span></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bottom-row">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+              Producción Semanal (unidades)
+            </div>
+          </div>
+          <div class="chart-area">
+            <div class="bar-chart">
+              <div class="bar-col"><div class="bar-wrap"><div class="bar bar-a" style="height:72%" data-val="144"></div><div class="bar bar-b" style="height:55%" data-val="110"></div></div><div class="bar-label">Lun</div></div>
+              <div class="bar-col"><div class="bar-wrap"><div class="bar bar-a" style="height:88%" data-val="176"></div><div class="bar bar-b" style="height:70%" data-val="140"></div></div><div class="bar-label">Mar</div></div>
+              <div class="bar-col"><div class="bar-wrap"><div class="bar bar-a" style="height:65%" data-val="130"></div><div class="bar bar-b" style="height:80%" data-val="160"></div></div><div class="bar-label">Mié</div></div>
+              <div class="bar-col"><div class="bar-wrap"><div class="bar bar-a" style="height:94%" data-val="188"></div><div class="bar bar-b" style="height:60%" data-val="120"></div></div><div class="bar-label">Jue</div></div>
+              <div class="bar-col"><div class="bar-wrap"><div class="bar bar-a" style="height:100%" data-val="200"></div><div class="bar bar-b" style="height:75%" data-val="150"></div></div><div class="bar-label">Vie</div></div>
+              <div class="bar-col"><div class="bar-wrap"><div class="bar bar-a" style="height:45%" data-val="90"></div><div class="bar bar-b" style="height:30%" data-val="60"></div></div><div class="bar-label">Sáb</div></div>
+            </div>
+            <div class="chart-legend">
+              <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>Confeccionado</div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--accent2)"></div>Entregado</div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+              Actividad Reciente
+            </div>
+            <div class="chip">Ver todo</div>
+          </div>
+          <div class="activity-list">
+            <div class="act-item"><div class="act-icon" style="background:rgba(0,229,160,.1);color:var(--accent)">✓</div><div class="act-body"><div class="act-text"><strong>#TC-0235</strong> marcado como <strong style="color:var(--accent)">Terminado</strong></div><div class="act-time">Hace 12 min</div></div></div>
+            <div class="act-item"><div class="act-icon" style="background:rgba(239,68,68,.1);color:var(--danger)">⚠</div><div class="act-body"><div class="act-text"><strong>Stock crítico:</strong> Tela Licra bajo mínimo</div><div class="act-time">Hace 34 min</div></div></div>
+            <div class="act-item"><div class="act-icon" style="background:rgba(14,165,233,.1);color:var(--accent2)">$</div><div class="act-body"><div class="act-text">Cotización <strong>Sport & Style S.A.</strong> · $8.3M</div><div class="act-time">Hace 1h 20min</div></div></div>
+            <div class="act-item"><div class="act-icon" style="background:rgba(245,158,11,.1);color:var(--warn)">↑</div><div class="act-body"><div class="act-text"><strong>#TC-0241</strong> avanzó a <strong style="color:var(--warn)">Confección</strong></div><div class="act-time">Hace 2h 05min</div></div></div>
+            <div class="act-item"><div class="act-icon" style="background:rgba(167,139,250,.1);color:var(--purple)">+</div><div class="act-body"><div class="act-text">Entrada: <strong>500 m Tela Algodón</strong> registrada</div><div class="act-time">Hace 3h 10min</div></div></div>
+            <div class="act-item"><div class="act-icon" style="background:rgba(14,165,233,.1);color:var(--accent2)">👤</div><div class="act-body"><div class="act-text">Cliente <strong>Almacenes Tía Rosa</strong> consultó estado</div><div class="act-time">Ayer 4:52 PM</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── COTIZACIONES ── -->
+    <div class="page" id="page-cotizaciones">
+      <div class="page-header">
+        <div><div class="page-title">Cotizaciones</div><div class="page-sub">Gestión de cotizaciones y órdenes de venta</div></div>
+        <div class="header-actions">
+          <button class="btn btn-ghost">↓ Exportar</button>
+          <button class="btn btn-primary" onclick="openModal('modal-cot')">+ Nueva Cotización</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="tab-row">
+          <button class="tab-btn active" onclick="filterCot(this,'todas')">Todas (6)</button>
+          <button class="tab-btn" onclick="filterCot(this,'pendiente')">Pendientes (2)</button>
+          <button class="tab-btn" onclick="filterCot(this,'credito')">Crédito (2)</button>
+          <button class="tab-btn" onclick="filterCot(this,'pagado')">Pagadas (2)</button>
+        </div>
+        <table>
+          <thead><tr><th>Nº</th><th>Cliente</th><th>Productos</th><th>Total</th><th>Descuento</th><th>Estado Pago</th><th>Fecha</th><th>Acción</th></tr></thead>
+          <tbody id="cot-tbody">
+            <tr data-s="credito"><td><span class="order-id">#COT-2024</span></td><td><div class="client-name">Sport & Style S.A.</div><div class="client-type">Bogotá · 300 uds</div></td><td>Camisetas polo + pantalón</td><td><span class="amount" style="color:var(--accent)">$8.3M</span></td><td><span class="status-badge s-terminado" style="font-size:10px">15%</span></td><td><span class="status-badge s-credito">Crédito 30d</span></td><td style="font-size:12px;color:var(--muted)">12 Mar 26</td><td><button class="action-btn ab-send">Enviar</button></td></tr>
+            <tr data-s="pendiente"><td><span class="order-id">#COT-2023</span></td><td><div class="client-name">Distribuidora Norte</div><div class="client-type">Pamplona · 500 uds</div></td><td>Jeans denim + blusas</td><td><span class="amount" style="color:var(--accent)">$12.7M</span></td><td><span class="status-badge s-confeccion" style="font-size:10px">20%</span></td><td><span class="status-badge s-pendiente">Pendiente</span></td><td style="font-size:12px;color:var(--muted)">10 Mar 26</td><td><button class="action-btn ab-approve">Aprobar</button></td></tr>
+            <tr data-s="pagado"><td><span class="order-id">#COT-2022</span></td><td><div class="client-name">Boutique Milena</div><div class="client-type">Cúcuta · 80 uds</div></td><td>Vestidos casuales</td><td><span class="amount" style="color:var(--accent)">$3.1M</span></td><td><span class="status-badge s-terminado" style="font-size:10px">5%</span></td><td><span class="status-badge s-pagado">Pagado</span></td><td style="font-size:12px;color:var(--muted)">08 Mar 26</td><td><button class="action-btn ab-pdf">PDF</button></td></tr>
+            <tr data-s="credito"><td><span class="order-id">#COT-2021</span></td><td><div class="client-name">Confecciones López</div><div class="client-type">Cúcuta · 150 uds</div></td><td>Uniformes escolares</td><td><span class="amount" style="color:var(--accent)">$4.8M</span></td><td><span class="status-badge s-confeccion" style="font-size:10px">10%</span></td><td><span class="status-badge s-credito">Crédito 15d</span></td><td style="font-size:12px;color:var(--muted)">05 Mar 26</td><td><button class="action-btn ab-send">Enviar</button></td></tr>
+            <tr data-s="pagado"><td><span class="order-id">#COT-2020</span></td><td><div class="client-name">Almacenes Tía Rosa</div><div class="client-type">Ocaña · 200 uds</div></td><td>Ropa casual dama</td><td><span class="amount" style="color:var(--accent)">$6.2M</span></td><td><span class="status-badge s-confeccion" style="font-size:10px">18%</span></td><td><span class="status-badge s-pagado">Pagado</span></td><td style="font-size:12px;color:var(--muted)">28 Feb 26</td><td><button class="action-btn ab-pdf">PDF</button></td></tr>
+            <tr data-s="pendiente"><td><span class="order-id">#COT-2019</span></td><td><div class="client-name">Moda Express</div><div class="client-type">Cúcuta · 90 uds</div></td><td>Vestidos colección</td><td><span class="amount" style="color:var(--accent)">$1.9M</span></td><td><span class="status-badge s-terminado" style="font-size:10px">8%</span></td><td><span class="status-badge s-pendiente">Pendiente</span></td><td style="font-size:12px;color:var(--muted)">25 Feb 26</td><td><button class="action-btn ab-approve">Aprobar</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── INVENTARIO ── -->
+    <div class="page" id="page-inventario">
+      <div class="page-header">
+        <div><div class="page-title">Control de Inventario</div><div class="page-sub">Stock de materiales · 3 alertas críticas activas</div></div>
+        <div class="header-actions">
+          <button class="btn btn-ghost">↓ Exportar</button>
+          <button class="btn btn-primary" onclick="openModal('modal-inv')">+ Registrar Entrada</button>
+        </div>
+      </div>
+      <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="kpi-card green"><div class="kpi-label">Materiales en Stock</div><div class="kpi-value">12</div><div class="kpi-sub">tipos registrados</div></div>
+        <div class="kpi-card warn"><div class="kpi-label">Alertas Activas</div><div class="kpi-value">3</div><div class="kpi-sub"><span class="kpi-trend down">Requieren reposición</span></div></div>
+        <div class="kpi-card purple"><div class="kpi-label">Valor en Inventario</div><div class="kpi-value">$24M</div><div class="kpi-sub"><span class="kpi-trend up">↑ estimado COP</span></div></div>
+      </div>
+      <div class="card" style="overflow:visible">
+        <div class="card-header">
+          <div class="card-title">Materiales y Stock Actual</div>
+          <div class="card-actions">
+            <div class="chip active" onclick="filterInv(this,'all')">Todos</div>
+            <div class="chip" onclick="filterInv(this,'crit')">Críticos</div>
+            <div class="chip" onclick="filterInv(this,'ok')">OK</div>
+          </div>
+        </div>
+        <div class="inv-grid-full" id="inv-grid">
+          <div class="inv-card-full" data-f="ok"><div class="icf-top"><div><div class="icf-name">Tela Algodón 100%</div><div class="icf-cat">Telas · Rollo</div></div><span class="status-badge s-terminado" style="font-size:10px">Óptimo</span></div><div class="icf-val" style="color:var(--accent)">840 m</div><div class="icf-min">Mínimo: 200 m</div><div class="icf-bar-wrap"><div class="icf-bar" style="width:84%;background:var(--accent)"></div></div><div class="icf-footer"><span>84% disponible</span></div></div>
+          <div class="inv-card-full" data-f="ok"><div class="icf-top"><div><div class="icf-name">Denim 12 oz</div><div class="icf-cat">Telas · Rollo</div></div><span class="status-badge s-corte" style="font-size:10px">Medio</span></div><div class="icf-val" style="color:var(--accent2)">320 m</div><div class="icf-min">Mínimo: 150 m</div><div class="icf-bar-wrap"><div class="icf-bar" style="width:53%;background:var(--accent2)"></div></div><div class="icf-footer"><span>53% disponible</span></div></div>
+          <div class="inv-card-full low" data-f="ok"><div class="icf-top"><div><div class="icf-name">Hilo Poliéster</div><div class="icf-cat">Insumos · kg</div></div><span class="status-badge s-confeccion" style="font-size:10px">△ Bajo</span></div><div class="icf-val" style="color:var(--warn)">42 kg</div><div class="icf-min">Mínimo: 40 kg</div><div class="icf-bar-wrap"><div class="icf-bar" style="width:28%;background:var(--warn)"></div></div><div class="icf-footer"><span>28% disponible</span></div></div>
+          <div class="inv-card-full critical" data-f="crit"><div class="icf-top"><div><div class="icf-name">Tela Licra</div><div class="icf-cat">Telas · Rollo</div></div><span class="status-badge s-diseno" style="font-size:10px;background:rgba(239,68,68,.1);color:var(--danger)">● Crítico</span></div><div class="icf-val" style="color:var(--danger)">18 m</div><div class="icf-min">Mínimo: 80 m 🔴</div><div class="icf-bar-wrap"><div class="icf-bar" style="width:9%;background:var(--danger)"></div></div><div class="icf-footer"><span>9% disponible</span></div></div>
+          <div class="inv-card-full" data-f="ok"><div class="icf-top"><div><div class="icf-name">Cremalleras</div><div class="icf-cat">Insumos · uds</div></div><span class="status-badge s-terminado" style="font-size:10px">Óptimo</span></div><div class="icf-val" style="color:var(--accent)">1,250</div><div class="icf-min">Mínimo: 300</div><div class="icf-bar-wrap"><div class="icf-bar" style="width:72%;background:var(--accent)"></div></div><div class="icf-footer"><span>72% disponible</span></div></div>
+          <div class="inv-card-full critical" data-f="crit"><div class="icf-top"><div><div class="icf-name">Botones Plástico</div><div class="icf-cat">Insumos · uds</div></div><span class="status-badge" style="font-size:10px;background:rgba(239,68,68,.1);color:var(--danger)">● Crítico</span></div><div class="icf-val" style="color:var(--danger)">120</div><div class="icf-min">Mínimo: 500 🔴</div><div class="icf-bar-wrap"><div class="icf-bar" style="width:12%;background:var(--danger)"></div></div><div class="icf-footer"><span>12% disponible</span></div></div>
+          <div class="inv-card-full" data-f="ok"><div class="icf-top"><div><div class="icf-name">Hilo Algodón</div><div class="icf-cat">Insumos · kg</div></div><span class="status-badge s-terminado" style="font-size:10px">Óptimo</span></div><div class="icf-val" style="color:var(--accent)">88 kg</div><div class="icf-min">Mínimo: 30 kg</div><div class="icf-bar-wrap"><div class="icf-bar" style="width:76%;background:var(--accent)"></div></div><div class="icf-footer"><span>76% disponible</span></div></div>
+          <div class="inv-card-full critical" data-f="crit"><div class="icf-top"><div><div class="icf-name">Tela Viscosa</div><div class="icf-cat">Telas · Rollo</div></div><span class="status-badge" style="font-size:10px;background:rgba(239,68,68,.1);color:var(--danger)">● Crítico</span></div><div class="icf-val" style="color:var(--danger)">22 m</div><div class="icf-min">Mínimo: 100 m 🔴</div><div class="icf-bar-wrap"><div class="icf-bar" style="width:14%;background:var(--danger)"></div></div><div class="icf-footer"><span>14% disponible</span></div></div>
+          <div class="inv-card-full" data-f="ok"><div class="icf-top"><div><div class="icf-name">Agujas Industriales</div><div class="icf-cat">Insumos · uds</div></div><span class="status-badge s-terminado" style="font-size:10px">Óptimo</span></div><div class="icf-val" style="color:var(--accent)">340</div><div class="icf-min">Mínimo: 50</div><div class="icf-bar-wrap"><div class="icf-bar" style="width:89%;background:var(--accent)"></div></div><div class="icf-footer"><span>89% disponible</span></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SEGUIMIENTO KANBAN ── -->
+    <div class="page" id="page-seguimiento">
+      <div class="page-header">
+        <div><div class="page-title">Seguimiento de Producción</div><div class="page-sub">Tablero Kanban · 6 pedidos activos</div></div>
+        <div class="header-actions">
+          <button class="btn btn-ghost">Actualizar</button>
+          <button class="btn btn-primary" onclick="openModal('modal-pedido')">+ Nuevo Pedido</button>
+        </div>
+      </div>
+      <div class="card" style="overflow:visible">
+        <div class="kanban-board">
+          <div class="kan-col">
+            <div class="kan-header"><div class="kan-title" style="color:var(--purple)">Diseño</div><div class="kan-count" style="background:rgba(167,139,250,.15);color:var(--purple)">2</div></div>
+            <div class="kan-cards">
+              <div class="kan-card"><div class="kan-card-id">#TC-0233</div><div class="kan-card-name">Sport & Style S.A.</div><div class="kan-card-detail">300 uds · Polo + Pantalón</div><div class="kan-card-bar"><div class="kan-card-bar-fill" style="width:18%;background:var(--purple)"></div></div><div class="kan-card-foot"><div class="kan-card-date">30 Mar</div><div class="kan-card-val">$8.3M</div></div></div>
+              <div class="kan-card"><div class="kan-card-id">#TC-0230</div><div class="kan-card-name">Almacenes Tía Rosa</div><div class="kan-card-detail">200 uds · Ropa casual</div><div class="kan-card-bar"><div class="kan-card-bar-fill" style="width:8%;background:var(--purple)"></div></div><div class="kan-card-foot"><div class="kan-card-date">04 Abr</div><div class="kan-card-val">$1.7M</div></div></div>
+              <div class="kan-drop">+ Soltar aquí</div>
+            </div>
+          </div>
+          <div class="kan-col">
+            <div class="kan-header"><div class="kan-title" style="color:var(--accent2)">Corte</div><div class="kan-count" style="background:rgba(14,165,233,.15);color:var(--accent2)">1</div></div>
+            <div class="kan-cards">
+              <div class="kan-card"><div class="kan-card-id">#TC-0238</div><div class="kan-card-name">Distribuidora Norte</div><div class="kan-card-detail">500 uds · Jeans + Blusas</div><div class="kan-card-bar"><div class="kan-card-bar-fill" style="width:42%;background:var(--accent2)"></div></div><div class="kan-card-foot"><div class="kan-card-date">22 Mar</div><div class="kan-card-val">$5.1M</div></div></div>
+              <div class="kan-drop">+ Soltar aquí</div>
+            </div>
+          </div>
+          <div class="kan-col">
+            <div class="kan-header"><div class="kan-title" style="color:var(--warn)">Confección</div><div class="kan-count" style="background:rgba(245,158,11,.15);color:var(--warn)">2</div></div>
+            <div class="kan-cards">
+              <div class="kan-card"><div class="kan-card-id">#TC-0241</div><div class="kan-card-name">Confecciones López</div><div class="kan-card-detail">150 uds · Uniformes</div><div class="kan-card-bar"><div class="kan-card-bar-fill" style="width:68%;background:var(--warn)"></div></div><div class="kan-card-foot"><div class="kan-card-date">18 Mar</div><div class="kan-card-val">$2.4M</div></div></div>
+              <div class="kan-card"><div class="kan-card-id">#TC-0237</div><div class="kan-card-name">Moda Express</div><div class="kan-card-detail">90 uds · Vestidos</div><div class="kan-card-bar"><div class="kan-card-bar-fill" style="width:35%;background:var(--warn)"></div></div><div class="kan-card-foot"><div class="kan-card-date">20 Mar</div><div class="kan-card-val">$1.9M</div></div></div>
+              <div class="kan-drop">+ Soltar aquí</div>
+            </div>
+          </div>
+          <div class="kan-col">
+            <div class="kan-header"><div class="kan-title" style="color:var(--accent)">Terminado</div><div class="kan-count" style="background:rgba(0,229,160,.15);color:var(--accent)">1</div></div>
+            <div class="kan-cards">
+              <div class="kan-card"><div class="kan-card-id">#TC-0235</div><div class="kan-card-name">Boutique Milena</div><div class="kan-card-detail">80 uds · Vestidos casuales</div><div class="kan-card-bar"><div class="kan-card-bar-fill" style="width:100%;background:var(--accent)"></div></div><div class="kan-card-foot"><div class="kan-card-date" style="color:var(--accent)">✓ Listo</div><div class="kan-card-val">$980K</div></div></div>
+              <div class="kan-drop">+ Soltar aquí</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── VISTA CLIENTE ── -->
+    <div class="page" id="page-cliente" style="padding:0;gap:0">
+      <div class="vc-wrap">
+        <div class="vc-nav">
+          <div class="vc-brand">
+            <div class="vc-brand-ico">Tx</div>
+            <div><div class="vc-brand-name">TexCore</div><div class="vc-brand-sub">Portal de seguimiento de pedidos</div></div>
+          </div>
+          <div style="font-size:11px;color:#94a3b8;font-family:var(--mono)">Cúcuta, Colombia · 2026</div>
+        </div>
+        <div class="vc-body">
+          <div id="vc-search-sec">
+            <div class="vc-hero">
+              <div class="vc-hero-icon">📦</div>
+              <div class="vc-hero-title">Consulta tu pedido</div>
+              <div class="vc-hero-sub">Ingresa el código para ver el estado y progreso en tiempo real</div>
+              <div class="vc-search-row">
+                <input class="vc-inp" id="vc-inp" placeholder="Ej: TC-0241" onkeydown="if(event.key==='Enter')vcBuscar()"/>
+                <button class="vc-search-btn" onclick="vcBuscar()">Consultar</button>
+              </div>
+              <div class="vc-error" id="vc-err">Código no encontrado. Prueba: TC-0241, TC-0238 o TC-0235</div>
+              <div class="vc-demo">Códigos de prueba: <span onclick="vcDemo('TC-0241')">TC-0241</span> · <span onclick="vcDemo('TC-0238')">TC-0238</span> · <span onclick="vcDemo('TC-0235')">TC-0235</span></div>
+            </div>
+          </div>
+          <div class="vc-result" id="vc-res">
+            <div class="vc-back" onclick="vcVolver()">← Consultar otro pedido</div>
+            <div class="vc-rcard">
+              <div class="vc-rcard-top">
+                <div><div class="vc-oid" id="vr-id"></div><div class="vc-oname" id="vr-name"></div><div class="vc-osub" id="vr-sub"></div></div>
+                <div class="vc-spill" id="vr-pill"></div>
+              </div>
+              <div class="vc-phases" id="vr-phases"></div>
+              <div class="vc-info-grid">
+                <div class="vc-ibox"><div class="vc-ibox-lbl">Fecha estimada</div><div class="vc-ibox-val a" id="vr-fecha"></div></div>
+                <div class="vc-ibox"><div class="vc-ibox-lbl">Valor del pedido</div><div class="vc-ibox-val g" id="vr-valor"></div></div>
+                <div class="vc-ibox"><div class="vc-ibox-lbl">Progreso total</div><div class="vc-ibox-val" id="vr-pct"></div></div>
+              </div>
+            </div>
+            <div class="vc-rcard">
+              <div style="font-size:15px;font-weight:700;color:#111;font-family:var(--mono);margin-bottom:14px">Detalle del pedido</div>
+              <div id="vr-prods"></div>
+            </div>
+            <div class="vc-rcard">
+              <div style="font-size:15px;font-weight:700;color:#111;font-family:var(--mono);margin-bottom:14px">Historial de actividad</div>
+              <div id="vr-tl"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+</div>
+
+<!-- MODALES -->
+<div class="modal-overlay" id="modal-cot">
+  <div class="modal-box">
+    <div class="modal-title">Nueva Cotización <button class="modal-close" onclick="closeModal('modal-cot')">✕</button></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Cliente</label><input class="form-input" placeholder="Nombre del cliente"/></div><div class="form-group"><label class="form-label">Tipo</label><select class="form-select"><option>Empresa</option><option>Mayorista</option><option>Minorista</option></select></div></div>
+    <div class="form-group"><label class="form-label">Ciudad</label><input class="form-input" placeholder="Ej: Cúcuta"/></div>
+    <div class="form-group"><label class="form-label">Productos</label><input class="form-input" placeholder="Ej: Camisetas polo + pantalón"/></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Cantidad (uds)</label><input class="form-input" type="number" placeholder="0"/></div><div class="form-group"><label class="form-label">Descuento %</label><input class="form-input" type="number" placeholder="0"/></div></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Valor Total</label><input class="form-input" placeholder="$0"/></div><div class="form-group"><label class="form-label">Estado de pago</label><select class="form-select"><option>Pendiente</option><option>Crédito 15d</option><option>Crédito 30d</option><option>Pagado</option></select></div></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-cot')">Cancelar</button><button class="btn btn-primary" onclick="closeModal('modal-cot')">Crear Cotización</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-inv">
+  <div class="modal-box">
+    <div class="modal-title">Registrar Entrada de Inventario <button class="modal-close" onclick="closeModal('modal-inv')">✕</button></div>
+    <div class="form-group"><label class="form-label">Material</label><select class="form-select"><option>Tela Algodón 100%</option><option>Denim 12 oz</option><option>Tela Licra</option><option>Tela Viscosa</option><option>Hilo Poliéster</option><option>Hilo Algodón</option><option>Cremalleras</option><option>Botones Plástico</option><option>Agujas Industriales</option></select></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Cantidad</label><input class="form-input" type="number" placeholder="0"/></div><div class="form-group"><label class="form-label">Unidad</label><select class="form-select"><option>metros (m)</option><option>kilogramos (kg)</option><option>unidades (uds)</option></select></div></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Proveedor</label><input class="form-input" placeholder="Nombre proveedor"/></div><div class="form-group"><label class="form-label">Fecha entrada</label><input class="form-input" type="date"/></div></div>
+    <div class="form-group"><label class="form-label">Observaciones</label><input class="form-input" placeholder="Opcional"/></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-inv')">Cancelar</button><button class="btn btn-primary" onclick="closeModal('modal-inv')">Registrar Entrada</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-pedido">
+  <div class="modal-box">
+    <div class="modal-title">Nuevo Pedido <button class="modal-close" onclick="closeModal('modal-pedido')">✕</button></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Cliente</label><input class="form-input" placeholder="Nombre del cliente"/></div><div class="form-group"><label class="form-label">Fase inicial</label><select class="form-select"><option>Diseño</option><option>Corte</option><option>Confección</option></select></div></div>
+    <div class="form-group"><label class="form-label">Descripción del pedido</label><input class="form-input" placeholder="Ej: 300 uds · Camisetas polo"/></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Fecha de entrega</label><input class="form-input" type="date"/></div><div class="form-group"><label class="form-label">Valor</label><input class="form-input" placeholder="$0"/></div></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-pedido')">Cancelar</button><button class="btn btn-primary" onclick="closeModal('modal-pedido')">Crear Pedido</button></div>
+  </div>
+</div>
+
+<script>
+/* ── USERS ── */
+const USERS = {
+  admin: { pass:'1234', role:'admin', name:'M. Galvis', initials:'MG', label:'Administrador' },
+  cliente: { pass:'tc0241', role:'cliente', name:'Tía Rosa', initials:'TR', label:'Cliente' }
+};
+let currentRole = 'admin';
+
+/* ── LOGIN ── */
+function setRole(r, el) {
+  currentRole = r;
+  document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+function fillDemo(user, pass, role) {
+  document.getElementById('login-user').value = user;
+  document.getElementById('login-pass').value = pass;
+  currentRole = role;
+  document.getElementById('tab-'+role).click();
+}
+function doLogin() {
+  const user = document.getElementById('login-user').value.trim().toLowerCase();
+  const pass = document.getElementById('login-pass').value;
+  const err = document.getElementById('login-error');
+  const u = USERS[user];
+  if (u && u.pass === pass) {
+    err.style.display = 'none';
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    setupUser(u);
+    if (u.role === 'cliente') {
+      document.getElementById('admin-nav').style.display = 'none';
+      document.getElementById('cliente-nav').style.display = 'block';
+      document.getElementById('notif-bell').style.display = 'none';
+      goPage('cliente', document.querySelector('#cliente-nav .nav-item'));
+    } else {
+      document.getElementById('notif-bell').style.display = 'flex';
+    }
+  } else {
+    err.style.display = 'block';
+  }
+}
+function setupUser(u) {
+  document.getElementById('top-avatar').textContent = u.initials;
+  document.getElementById('sb-avatar').textContent = u.initials;
+  document.getElementById('sb-name').textContent = u.name;
+  document.getElementById('sb-role').textContent = u.label;
+}
+function doLogout() {
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass').value = '';
+  document.getElementById('login-error').style.display = 'none';
+  document.getElementById('admin-nav').style.display = 'block';
+  document.getElementById('cliente-nav').style.display = 'none';
+  goPage('dashboard', document.querySelector('#admin-nav .nav-item'));
+}
+
+/* ── NAVIGATION ── */
+const PAGES = { dashboard:'Dashboard', cotizaciones:'Cotizaciones', inventario:'Inventario', seguimiento:'Seguimiento', cliente:'Vista Cliente' };
+function goPage(id, navEl) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if (navEl) navEl.classList.add('active');
+  document.getElementById('breadcrumb').innerHTML = 'Sistema de Gestión Textil &nbsp;/&nbsp; <span>' + (PAGES[id]||id) + '</span>';
+  if (id === 'cliente') vcReset();
+}
+
+/* ── CLOCK ── */
+function updateClock() {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+updateClock(); setInterval(updateClock, 1000);
+
+/* ── MODALS ── */
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); }));
+
+/* ── FILTERS ── */
+document.querySelectorAll('.chip').forEach(c => {
+  c.addEventListener('click', function() {
+    const siblings = this.parentElement.querySelectorAll('.chip');
+    siblings.forEach(s => s.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+function filterCot(el, s) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('#cot-tbody tr').forEach(r => r.style.display = (s==='todas'||r.dataset.s===s) ? '' : 'none');
+}
+function filterInv(el, f) {
+  el.parentElement.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('#inv-grid .inv-card-full').forEach(c => {
+    c.style.display = f==='all' ? '' : (f==='crit' ? (c.dataset.f==='crit'?'':'none') : (c.dataset.f==='ok'?'':'none'));
+  });
+}
+
+/* ── VISTA CLIENTE ── */
+const FS = ['Diseño','Corte','Confección','Terminado','Entregado'];
+const PD = {
+  'TC-0241':{id:'#TC-0241',name:'Confecciones López',sub:'Empresa · Cúcuta · 150 unidades',fase:2,pill:'Confección',pb:'#fef3c7',pc:'#b45309',pct:'68%',fecha:'18 Mar 2026',valor:'$2,400,000',
+    prods:[{n:'Uniformes escolares completos',q:'150 uds'},{n:'Tela Algodón 100%',q:'85 m'},{n:'Hilo y accesorios',q:'Kit x150'}],
+    tl:[{i:'✓',c:'tli-g',t:'Avanzó a fase Confección',d:'Hace 2h 05min'},{i:'✓',c:'tli-g',t:'Corte completado al 100%',d:'Hace 1 día'},{i:'✓',c:'tli-g',t:'Diseño aprobado por cliente',d:'Hace 3 días'},{i:'$',c:'tli-b',t:'Cotización aceptada · $2.4M',d:'Hace 5 días'},{i:'+',c:'tli-gr',t:'Pedido registrado en sistema',d:'05 Mar 2026'}]},
+  'TC-0238':{id:'#TC-0238',name:'Distribuidora Norte',sub:'Mayorista · Pamplona · 500 unidades',fase:1,pill:'Corte',pb:'#dbeafe',pc:'#1e40af',pct:'42%',fecha:'22 Mar 2026',valor:'$5,100,000',
+    prods:[{n:'Jeans denim 12 oz',q:'300 uds'},{n:'Blusas casuales',q:'200 uds'},{n:'Denim 12 oz',q:'180 m'}],
+    tl:[{i:'✓',c:'tli-b',t:'En fase de Corte',d:'Hace 1 día'},{i:'✓',c:'tli-g',t:'Diseño finalizado',d:'Hace 2 días'},{i:'+',c:'tli-gr',t:'Pedido registrado',d:'10 Mar 2026'}]},
+  'TC-0235':{id:'#TC-0235',name:'Boutique Milena',sub:'Minorista · Cúcuta · 80 unidades',fase:4,pill:'Terminado',pb:'#dcfce7',pc:'#059652',pct:'100%',fecha:'✓ Listo para entrega',valor:'$980,000',
+    prods:[{n:'Vestidos casuales dama',q:'80 uds'},{n:'Tela Licra+Algodón',q:'48 m'}],
+    tl:[{i:'✓',c:'tli-g',t:'TERMINADO · Listo para entrega',d:'Hace 12 min'},{i:'✓',c:'tli-g',t:'Control de calidad OK',d:'Hace 3h'},{i:'✓',c:'tli-g',t:'Confección completada',d:'Hace 6h'},{i:'✓',c:'tli-g',t:'Corte completado',d:'Hace 1 día'},{i:'✓',c:'tli-g',t:'Diseño aprobado',d:'Hace 2 días'},{i:'+',c:'tli-gr',t:'Pedido registrado',d:'08 Mar 2026'}]}
+};
+function vcBuscar() {
+  const raw = document.getElementById('vc-inp').value.trim().toUpperCase().replace(/^#/,'').replace('-','');
+  const k = Object.keys(PD).find(x => x.replace('-','') === raw);
+  document.getElementById('vc-err').style.display = k ? 'none' : 'block';
+  if (k) vcMostrar(PD[k]);
+}
+function vcDemo(c) { document.getElementById('vc-inp').value = c; vcBuscar(); }
+function vcMostrar(p) {
+  document.getElementById('vc-search-sec').style.display = 'none';
+  document.getElementById('vc-res').classList.add('show');
+  document.getElementById('vr-id').textContent = p.id;
+  document.getElementById('vr-name').textContent = p.name;
+  document.getElementById('vr-sub').textContent = p.sub;
+  document.getElementById('vr-fecha').textContent = p.fecha;
+  document.getElementById('vr-valor').textContent = p.valor;
+  document.getElementById('vr-pct').textContent = p.pct;
+  const pill = document.getElementById('vr-pill');
+  pill.textContent = p.pill; pill.style.background = p.pb; pill.style.color = p.pc;
+  const ph = document.getElementById('vr-phases'); ph.innerHTML = '';
+  FS.forEach((f,i) => {
+    const done=i<p.fase, active=i===p.fase, lc=done?'#00e5a0':'#e2e8f0';
+    const d = document.createElement('div'); d.className = 'vc-ph';
+    d.innerHTML = `${i<FS.length-1?`<div class="vc-ph-line" style="background:${lc}"></div>`:''}
+      <div class="vc-ph-circle ${done?'vpc-done':active?'vpc-active':'vpc-pend'}">${done?'✓':i+1}</div>
+      <div class="vc-ph-lbl ${done?'vpl-done':active?'vpl-active':'vpl-pend'}">${f}</div>`;
+    ph.appendChild(d);
+  });
+  document.getElementById('vr-prods').innerHTML = p.prods.map(x=>`<div class="vc-prod-item"><div class="vc-prod-name">${x.n}</div><div class="vc-prod-qty">${x.q}</div></div>`).join('');
+  document.getElementById('vr-tl').innerHTML = p.tl.map(x=>`<div class="vc-tl-item"><div class="vc-tl-ico ${x.c}">${x.i}</div><div><div class="vc-tl-title">${x.t}</div><div class="vc-tl-time">${x.d}</div></div></div>`).join('');
+}
+function vcVolver() {
+  document.getElementById('vc-search-sec').style.display = 'block';
+  document.getElementById('vc-res').classList.remove('show');
+  document.getElementById('vc-inp').value = '';
+  document.getElementById('vc-err').style.display = 'none';
+}
+function vcReset() { vcVolver(); }
+</script>
+</body>
+</html>
